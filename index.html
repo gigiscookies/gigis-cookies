@@ -77,6 +77,8 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
 .oform .orad input { width: auto; }
 .ototal { font-weight: 700; font-size: 1.2rem; }
 .oerr { min-height: 1.2rem; font-weight: 700; }
+.ofreqnote { font-size: .9rem; }
+.omanage { display: block; margin-top: 1rem; color: #fff; font-size: .9rem; }
 
 /* "Text Gigi my order" box, shown after the customer comes back from paying */
 .opaid { background: #fff; color: var(--ink); border-radius: 1.5rem; padding: 1.25rem; text-align: center; }
@@ -141,10 +143,19 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     <form id="oform" class="oform" name="order" method="POST" data-netlify="true" netlify-honeypot="bot-field">
       <input type="hidden" name="form-name" value="order">
       <p hidden><label>Leave this empty<input name="bot-field"></label></p>
-      <input type="hidden" name="size" id="hsize"><input type="hidden" name="method" id="hmeth"><input type="hidden" name="total" id="htotal"><input type="hidden" name="message" id="hmsg">
+      <input type="hidden" name="size" id="hsize"><input type="hidden" name="method" id="hmeth"><input type="hidden" name="total" id="htotal"><input type="hidden" name="message" id="hmsg"><input type="hidden" name="frequency" id="hfreq">
       <label>Your name<input id="oname" name="name" required maxlength="40" autocomplete="name"></label>
       <label>Your phone number<input id="ophone" name="phone" type="tel" required maxlength="20" autocomplete="tel"></label>
       <fieldset class="ofs"><legend>How many cookies</legend><div class="oqty" id="oqty"></div></fieldset>
+      <!-- Standing orders. This choice stays hidden until the subscription payment links are
+           filled in (SUBSCRIPTION_LINKS in the script). To preview it, add ?preview=subscription
+           to the end of the site address. -->
+      <fieldset class="ofs" id="ofreqwrap" hidden><legend>How often</legend>
+        <label class="orad"><input type="radio" name="ofreq" value="once" checked> Just this once</label>
+        <label class="orad"><input type="radio" name="ofreq" value="2"> Every 2 weeks</label>
+        <label class="orad"><input type="radio" name="ofreq" value="4"> Every 4 weeks</label>
+        <div class="ofreqnote" id="ofreqnote" hidden></div>
+      </fieldset>
       <fieldset class="ofs"><legend>Pickup or delivery</legend>
         <label class="orad"><input type="radio" name="ometh" value="pickup" checked> Pickup (free)</label>
         <label class="orad"><input type="radio" name="ometh" value="delivery"> Delivery (+$10)</label>
@@ -155,11 +166,13 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
       <label>What time<input id="otime" name="time" type="time" required></label>
       <div class="ototal" id="ototal"></div>
       <div class="oerr" id="oerr" role="alert"></div>
-      <button class="btn" type="submit">Place order &amp; pay</button>
+      <button class="btn" type="submit" id="osubmit">Place order &amp; pay</button>
       <p class="onote">You'll pay securely with Apple Pay or card, then your order gets texted to Gigi.</p>
     </form>
     <!-- Gigi's number. The script reads it from this link, so this is the only place to change it. -->
     <a id="otext" class="btn" href="sms:+19173457890">Or text 917-345-7890</a>
+    <!-- Shown once MANAGE_LINK in the script is filled in. -->
+    <a id="omanage" class="omanage" href="#" hidden>Manage or cancel a standing order</a>
   </div>
 </section>
 </main>
@@ -185,6 +198,27 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
       36: "https://buy.stripe.com/aFa9AN9Hv2xf8FT0O2awo08"
     }
   };
+
+  // Standing orders (subscriptions): TO DO IN STRIPE, then paste the links here.
+  // Each "" needs a Stripe payment link for a RECURRING price that bills every 2 or every 4 weeks.
+  // The amount must match the price list (plus the delivery fee for the delivery links), and each
+  // link should send the customer back to this site with ?paid=1 after paying, like the links above.
+  // Until every "" below is filled in, customers do not see the "How often" choice at all.
+  // The sizes listed here are the only ones offered as a standing order.
+  var SUBSCRIPTION_LINKS = {
+    2: {                                   // every 2 weeks
+      pickup:   { 12: "", 24: "" },
+      delivery: { 12: "", 24: "" }
+    },
+    4: {                                   // every 4 weeks
+      pickup:   { 12: "", 24: "" },
+      delivery: { 12: "", 24: "" }
+    }
+  };
+  // TO DO IN STRIPE: the customer portal link, where subscribers update their card or cancel.
+  // While this is "", the "Manage or cancel a standing order" link stays hidden.
+  var MANAGE_LINK = "";
+
   var DELIVERY_FEE = 10;
   var PICKUP_DAYS = [0, 1, 5];        // Sunday, Monday, Friday
   var DELIVERY_DAYS = [1, 5];         // Monday, Friday
@@ -222,6 +256,27 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   function method() { return document.querySelector('input[name="ometh"]:checked').value; }
   function isDelivery() { return method() === "delivery"; }
   function orderTotal() { return PRICES[size] + (isDelivery() ? DELIVERY_FEE : 0); }
+
+  // Standing orders
+  function frequency() { return document.querySelector('input[name="ofreq"]:checked').value; }  // "once", "2" or "4"
+  function isRepeat() { return frequency() !== "once"; }
+  function repeatText() { return "every " + frequency() + " weeks"; }
+  function subscriptionSizes() { return Object.keys((SUBSCRIPTION_LINKS[frequency()] || {})[method()] || {}); }
+  function payLink() {
+    if (!isRepeat()) return LINKS[method()][size];
+    return ((SUBSCRIPTION_LINKS[frequency()] || {})[method()] || {})[size] || "";
+  }
+  function subscriptionLinksReady() {
+    var ready = true;
+    Object.keys(SUBSCRIPTION_LINKS).forEach(function (weeks) {
+      Object.keys(SUBSCRIPTION_LINKS[weeks]).forEach(function (how) {
+        Object.keys(SUBSCRIPTION_LINKS[weeks][how]).forEach(function (qty) {
+          if (!SUBSCRIPTION_LINKS[weeks][how][qty]) ready = false;
+        });
+      });
+    });
+    return ready;
+  }
 
   // Browser storage can be blocked (private windows), so never let it break the page.
   function save(key, value) {
@@ -269,22 +324,49 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
       b.type = "button";
       b.className = "opill";
       b.textContent = sizeName(qty) + " (" + qty + " cookies) - " + money(PRICES[qty]);
-      b.setAttribute("aria-pressed", qty === size ? "true" : "false");
-      b.onclick = function () {
-        size = qty;
-        Array.prototype.forEach.call(sizeBox.children, function (other) {
-          other.setAttribute("aria-pressed", other === b ? "true" : "false");
-        });
-        showTotal();
-      };
+      b.setAttribute("data-qty", qty);
+      b.onclick = function () { pickSize(qty); };
       sizeBox.appendChild(b);
     });
+    pickSize(size);
+  }
+
+  function pickSize(qty) {
+    size = qty;
+    Array.prototype.forEach.call(sizeBox.children, function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-qty") === size ? "true" : "false");
+    });
+    showTotal();
   }
 
   function showTotal() {
-    totalEl.textContent = isDelivery()
+    var text = isDelivery()
       ? "Cookies " + money(PRICES[size]) + " + delivery " + money(DELIVERY_FEE) + " = Total " + money(orderTotal())
       : "Total: " + money(orderTotal());
+    totalEl.textContent = isRepeat() ? text + " " + repeatText() : text;
+  }
+
+  // Switch the form between a one-time order and a standing order.
+  function applyFrequency() {
+    var repeat = isRepeat(), what = method();
+
+    // A standing order only comes in the sizes that have a subscription link.
+    var offered = repeat ? subscriptionSizes() : Object.keys(PRICES);
+    Array.prototype.forEach.call(sizeBox.children, function (b) {
+      b.hidden = offered.indexOf(b.getAttribute("data-qty")) < 0;
+    });
+    if (offered.length && offered.indexOf(size) < 0) pickSize(offered[0]);
+
+    var days = isDelivery() ? "Monday or Friday, 9 AM to 2 PM" : "Monday, Friday, or Sunday";
+    byId("odlab").textContent = (repeat ? "First " + what : what.charAt(0).toUpperCase() + what.slice(1)) + " day (" + days + ")";
+    var note = byId("ofreqnote");
+    note.hidden = !repeat;
+    note.textContent = repeat
+      ? "Your cookies repeat " + repeatText() + ", on the same weekday and time as your first " + what +
+        ". Your card is charged today and then " + repeatText() + ". To skip, pause or cancel, just text Gigi."
+      : "";
+    byId("osubmit").textContent = repeat ? "Start standing order & pay" : "Place order & pay";
+    showTotal();
   }
 
   // List the upcoming pickup or delivery days, keeping the chosen day if it is still allowed.
@@ -310,13 +392,12 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     var hadDay = dayEl.value;
     timeEl.min = delivery ? DELIVERY_OPENS : "";
     timeEl.max = delivery ? DELIVERY_CLOSES : "";
-    byId("odlab").textContent = delivery ? "Delivery day (Monday or Friday, 9 AM to 2 PM)" : "Pickup day (Monday, Friday, or Sunday)";
     byId("oaddrwrap").hidden = !delivery;
     addrEl.required = delivery;
     fillDays();
     // A Sunday pickup that was switched to delivery drops off the list, so say why.
     showError(hadDay && !dayEl.value ? NO_SUNDAY : "");
-    showTotal();
+    applyFrequency();
   }
 
   // Check the day and time. Returns the chosen date, or null after showing what to fix.
@@ -343,12 +424,21 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     e.preventDefault();
     var when = chosenDateTime();
     if (!when) return;
+    var link = payLink();
+    if (!link) {
+      // The subscription link for this choice has not been added yet (see SUBSCRIPTION_LINKS).
+      showError("Standing orders aren't open yet. Choose \"Just this once\", or text Gigi to set one up.");
+      return;
+    }
     showError("");
 
     var hour = when.getHours();
     var whenText = longDate(when) + " at " + (hour % 12 || 12) + ":" + pad(when.getMinutes()) + " " + (hour >= 12 ? "PM" : "AM");
-    var message = "Hi Gigi! I just PAID for " + sizeName(size).toLowerCase() + " (" + size + " cookies) for " + method() +
-      " on " + whenText + ". Total: " + money(orderTotal()) +
+    var cookies = sizeName(size).toLowerCase() + " (" + size + " cookies)";
+    var message = "Hi Gigi! I just PAID " + (isRepeat()
+        ? "to start a standing order: " + cookies + " for " + method() + " " + repeatText() + ", starting " + whenText +
+          ". Total: " + money(orderTotal()) + " " + repeatText()
+        : "for " + cookies + " for " + method() + " on " + whenText + ". Total: " + money(orderTotal())) +
       ". Name: " + byId("oname").value.trim() +
       ". Phone: " + byId("ophone").value.trim() +
       (isDelivery() ? ". Address: " + addrEl.value.trim() : "");
@@ -358,6 +448,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     byId("hmeth").value = method();
     byId("htotal").value = money(orderTotal());
     byId("hmsg").value = message;
+    byId("hfreq").value = isRepeat() ? "Every " + frequency() + " weeks" : "One time";
     var body = new URLSearchParams(new FormData(form));
     if (!(navigator.sendBeacon && navigator.sendBeacon("/", body))) {
       try {
@@ -367,15 +458,20 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
 
     // Keep the text message for when the customer comes back from Stripe, then go pay.
     save(ORDER_KEY, JSON.stringify({ m: message, t: Date.now() }));
-    window.location.href = LINKS[method()][size];
+    window.location.href = link;
   }
 
   // ---- Start ----
+
+  // Offer standing orders only once Stripe is set up, or when previewing with ?preview=subscription.
+  if (subscriptionLinksReady() || /[?&]preview=subscription/.test(location.search)) byId("ofreqwrap").hidden = false;
+  if (MANAGE_LINK) { byId("omanage").href = MANAGE_LINK; byId("omanage").hidden = false; }
 
   showPendingOrder();
   buildSizeButtons();
   applyMethod();
   Array.prototype.forEach.call(methodRadios, function (radio) { radio.onchange = applyMethod; });
+  Array.prototype.forEach.call(document.getElementsByName("ofreq"), function (radio) { radio.onchange = applyFrequency; });
   dayEl.onchange = function () { showError(""); };
   timeEl.onchange = function () { showError(""); };
   form.onsubmit = submitOrder;
