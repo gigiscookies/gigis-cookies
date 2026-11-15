@@ -10,7 +10,7 @@
 //   UNSUBSCRIBE_SECRET  any long random text
 //   WINBACK_LIVE        "true" to really send; anything else = practice run (logs only)
 import { getStore } from "@netlify/blobs";
-import { SITE_URL, unsubLink } from "./winback-lib.mjs";
+import { SITE_URL, unsubLink } from "../lib/winback-lib.mjs";
 
 const DAYS_QUIET = 21;
 const MAX_PER_RUN = 50;

@@ -1,6 +1,6 @@
 // The unsubscribe link in the "we miss you" emails points here.
 import { getStore } from "@netlify/blobs";
-import { SITE_URL, validToken } from "./winback-lib.mjs";
+import { SITE_URL, validToken } from "../lib/winback-lib.mjs";
 
 function page(message) {
   return new Response(
