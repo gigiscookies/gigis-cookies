@@ -81,7 +81,8 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
 .oform button.osub { display: block; width: 100%; background: transparent; color: #fff; border: 3px dashed #fff; border-radius: .7rem; padding: .7rem; text-align: center; font: inherit; font-weight: 700; cursor: pointer; }
 .oform button.osub[aria-pressed="true"] { background: #fff; color: var(--hot); border-style: solid; }
 .oform button.osub:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
-.omanage { display: block; margin-top: 1rem; color: #fff; font-size: .9rem; }
+.omanage { margin: .6rem 0 0; color: #6b6b6b; font-size: .85rem; }
+.omanage a { color: inherit; }
 
 /* "Text Gigi my order" box, shown after the customer comes back from paying */
 .opaid { background: #fff; color: var(--ink); border-radius: 1.5rem; padding: 1.25rem; text-align: center; }
@@ -173,13 +174,14 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
       <p class="onote">You'll pay securely with Apple Pay or card, then your order gets texted to Gigi.</p>
     </form>
     <!-- Gigi's number. The script reads it from this link, so this is the only place to change it. -->
-    <a id="otext" class="btn" href="sms:+19173457890">Or text 917-345-7890</a>
-    <!-- Shown once MANAGE_LINK in the script is filled in. -->
-    <a id="omanage" class="omanage" href="#" hidden>Manage or cancel a subscription</a>
-  </div>
+    <a id="otext" class="btn" href="sms:+19173457890">Or text 917-345-7890</a>  </div>
 </section>
 </main>
-<footer>Made with lots of chocolate by Gigi's Cookies</footer>
+<footer>
+  Made with lots of chocolate by Gigi's Cookies
+  <!-- Shown once MANAGE_LINK in the script is filled in. -->
+  <p class="omanage" id="omanagewrap" hidden>Have a subscription and want to cancel? <a id="omanage" href="#">Manage it here</a>.</p>
+</footer>
 <script>
 (function () {
   // ---- Settings ----
@@ -359,7 +361,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     var days = isDelivery() ? "Monday or Friday, 9 AM to 2 PM" : "Monday, Friday, or Sunday";
     byId("odlab").textContent = (repeat ? "First " + what : what.charAt(0).toUpperCase() + what.slice(1)) + " day (" + days + ")";
     byId("ofreqnote").textContent = "Your cookies repeat " + repeatText() + ", on the same weekday and time as your first " + what +
-      ". Your card is charged today and then " + repeatText() + ". To skip or pause, text Gigi. You can cancel anytime with the link at the bottom of this form.";
+      ". Your card is charged today and then " + repeatText() + ". To skip or pause, text Gigi. You can cancel anytime with the link at the bottom of this page.";
     byId("osubmit").textContent = repeat ? "Subscribe & pay" : "Place order & pay";
     showTotal();
   }
@@ -464,7 +466,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     showError("");
     applyFrequency();
   };
-  if (MANAGE_LINK) { byId("omanage").href = MANAGE_LINK; byId("omanage").hidden = false; }
+  if (MANAGE_LINK) { byId("omanage").href = MANAGE_LINK; byId("omanagewrap").hidden = false; }
 
   showPendingOrder();
   buildSizeButtons();
