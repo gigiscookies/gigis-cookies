@@ -202,29 +202,27 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     }
   };
 
-  // Subscriptions: TO DO IN STRIPE, then paste the links here.
-  // Each "" needs a Stripe payment link for a RECURRING price that bills every week, every 2 weeks or every 4 weeks.
-  // The amount must match the price list (plus the delivery fee for the delivery links), and each
-  // link should send the customer back to this site with ?paid=1 after paying, like the links above.
-  // While a link is still "", choosing that subscription shows "Subscriptions aren't open yet"
-  // instead of taking payment. The sizes listed here are the only ones offered as a subscription.
+  // Subscriptions: one recurring Stripe payment link per schedule, method and size. Don't remove them.
+  // The amount is set in Stripe and must match the price list (plus the delivery fee for delivery),
+  // and each link sends the customer back to this site with ?paid=1 after paying.
+  // The sizes listed here are the only ones offered as a subscription. If a link is ever left as "",
+  // choosing that subscription shows "Subscriptions aren't open yet" instead of taking payment.
   var SUBSCRIPTION_LINKS = {
     1: {                                   // every week
-      pickup:   { 12: "", 24: "" },
-      delivery: { 12: "", 24: "" }
+      pickup:   { 12: "https://buy.stripe.com/8x24gt6vj2xfcW9cwKawo0a", 24: "https://buy.stripe.com/8x2bIVf1Pb3L9JX40eawo0b" },
+      delivery: { 12: "https://buy.stripe.com/28E8wJf1Pb3L09ncwKawo0c", 24: "https://buy.stripe.com/cNidR36vj1tb2hvfIWawo0d" }
     },
-    2: {                                  // every 2 weeks
-      pickup:   { 12: "", 24: "" },
-      delivery: { 12: "", 24: "" }
+    2: {                                   // every 2 weeks
+      pickup:   { 12: "https://buy.stripe.com/7sY8wJ8Drb3L7BPfIWawo0e", 24: "https://buy.stripe.com/7sY28l3j7b3Lf4haoCawo0f" },
+      delivery: { 12: "https://buy.stripe.com/6oUeV706V1tbaO1dAOawo0g", 24: "https://buy.stripe.com/8x2bIVaLz0p77BP68mawo0h" }
     },
     4: {                                   // every 4 weeks
-      pickup:   { 12: "", 24: "" },
-      delivery: { 12: "", 24: "" }
+      pickup:   { 12: "https://buy.stripe.com/eVq14h06V1tbg8laoCawo0i", 24: "https://buy.stripe.com/cNifZbdXL1tb1dr68mawo0j" },
+      delivery: { 12: "https://buy.stripe.com/bJe7sF06Vc7P09n54iawo0k", 24: "https://buy.stripe.com/bJeaER06VdbT6xL2Waawo0l" }
     }
   };
-  // TO DO IN STRIPE: the customer portal link, where subscribers update their card or cancel.
-  // While this is "", the "Manage or cancel a subscription" link stays hidden.
-  var MANAGE_LINK = "";
+  // Stripe customer portal, where subscribers update their card or cancel.
+  var MANAGE_LINK = "https://billing.stripe.com/p/login/5kQ6oB6vj7Rz7BP54iawo00";
   // Set to false to hide the Subscribe button from customers (for example, until Stripe is ready).
   var SHOW_SUBSCRIPTION = true;
 
@@ -361,7 +359,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     var days = isDelivery() ? "Monday or Friday, 9 AM to 2 PM" : "Monday, Friday, or Sunday";
     byId("odlab").textContent = (repeat ? "First " + what : what.charAt(0).toUpperCase() + what.slice(1)) + " day (" + days + ")";
     byId("ofreqnote").textContent = "Your cookies repeat " + repeatText() + ", on the same weekday and time as your first " + what +
-      ". Your card is charged today and then " + repeatText() + ". To skip, pause or cancel, just text Gigi.";
+      ". Your card is charged today and then " + repeatText() + ". To skip or pause, text Gigi. You can cancel anytime with the link at the bottom of this form.";
     byId("osubmit").textContent = repeat ? "Subscribe & pay" : "Place order & pay";
     showTotal();
   }

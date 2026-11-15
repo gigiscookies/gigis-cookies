@@ -10,17 +10,13 @@ The ordering website for Gigi's Cookies, live at https://gigiscookies.netlify.ap
 - Order days, the delivery window and the delivery fee are in the settings at the top of the script.
 - Gigi's phone number is set once, on the "Or text" link.
 
-## Subscriptions (Stripe not connected yet)
+## Subscriptions
 
 The order form works as a normal one-time order. Under the sizes there is a "Subscribe and get cookies on repeat" button; tapping it switches the form to a subscription (every week, every 2 weeks or every 4 weeks), and tapping it again switches back.
 
-Until Stripe is set up, trying to pay for a subscription shows "Subscriptions aren't open yet" and takes no payment. To hide the button from customers in the meantime, set `SHOW_SUBSCRIPTION` to `false` in `index.html`.
-
-To connect it, in Stripe:
-
-1. Create recurring prices for 1 dozen and 2 dozen, for pickup and for delivery (+$10), billed every week, every 2 weeks and every 4 weeks. That is 12 prices.
-2. Create a payment link for each, and set each one to send the customer back to `https://gigiscookies.netlify.app/?paid=1` after paying.
-3. Paste the 12 links into `SUBSCRIPTION_LINKS` in `index.html`.
-4. Turn on the Stripe customer portal and paste its link into `MANAGE_LINK`. This shows a "Manage or cancel a subscription" link.
-
-To offer other sizes or schedules, add them to `SUBSCRIPTION_LINKS` (and add a matching "How often" option in the form for a new schedule).
+- Subscriptions come in 1 dozen and 2 dozen, for pickup or delivery (+$10), at the same prices as one-time orders.
+- The 12 recurring Stripe payment links live in `SUBSCRIPTION_LINKS` in `index.html`. Each sends the customer back to the site with `?paid=1` after paying.
+- `MANAGE_LINK` is the Stripe customer portal, where subscribers update their card or cancel. Cancelling takes effect at the end of the period already paid for.
+- Stripe charges on the day the customer signs up and then on that schedule, which is not necessarily the pickup day.
+- To hide the Subscribe button, set `SHOW_SUBSCRIPTION` to `false`.
+- To offer other sizes or schedules, create the recurring payment link in Stripe, add it to `SUBSCRIPTION_LINKS`, and add a matching "How often" option in the form for a new schedule.
