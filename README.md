@@ -12,15 +12,15 @@ The ordering website for Gigi's Cookies, live at https://gigiscookies.netlify.ap
 
 ## Subscriptions (Stripe not connected yet)
 
-The order form works as a normal one-time order. Under the sizes there is a "Subscribe and get cookies on repeat" button; tapping it switches the form to a subscription (every 2 weeks or every 4 weeks), and tapping it again switches back.
+The order form works as a normal one-time order. Under the sizes there is a "Subscribe and get cookies on repeat" button; tapping it switches the form to a subscription (every week, every 2 weeks or every 4 weeks), and tapping it again switches back.
 
 Until Stripe is set up, trying to pay for a subscription shows "Subscriptions aren't open yet" and takes no payment. To hide the button from customers in the meantime, set `SHOW_SUBSCRIPTION` to `false` in `index.html`.
 
 To connect it, in Stripe:
 
-1. Create recurring prices for 1 dozen and 2 dozen, for pickup and for delivery (+$10), billed every 2 weeks and every 4 weeks. That is 8 prices.
+1. Create recurring prices for 1 dozen and 2 dozen, for pickup and for delivery (+$10), billed every week, every 2 weeks and every 4 weeks. That is 12 prices.
 2. Create a payment link for each, and set each one to send the customer back to `https://gigiscookies.netlify.app/?paid=1` after paying.
-3. Paste the 8 links into `SUBSCRIPTION_LINKS` in `index.html`.
+3. Paste the 12 links into `SUBSCRIPTION_LINKS` in `index.html`.
 4. Turn on the Stripe customer portal and paste its link into `MANAGE_LINK`. This shows a "Manage or cancel a subscription" link.
 
 To offer other sizes or schedules, add them to `SUBSCRIPTION_LINKS` (and add a matching "How often" option in the form for a new schedule).

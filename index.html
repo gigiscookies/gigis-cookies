@@ -154,6 +154,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
            button; tapping it again switches back. SHOW_SUBSCRIPTION in the script hides it entirely. -->
       <button type="button" class="osub" id="osubbtn" aria-pressed="false" aria-controls="osubpanel">Subscribe and get cookies on repeat</button>
       <fieldset class="ofs" id="osubpanel" hidden><legend>How often</legend>
+        <label class="orad"><input type="radio" name="ofreq" value="1"> Every week</label>
         <label class="orad"><input type="radio" name="ofreq" value="2" checked> Every 2 weeks</label>
         <label class="orad"><input type="radio" name="ofreq" value="4"> Every 4 weeks</label>
         <div class="ofreqnote" id="ofreqnote"></div>
@@ -202,13 +203,17 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   };
 
   // Subscriptions: TO DO IN STRIPE, then paste the links here.
-  // Each "" needs a Stripe payment link for a RECURRING price that bills every 2 or every 4 weeks.
+  // Each "" needs a Stripe payment link for a RECURRING price that bills every week, every 2 weeks or every 4 weeks.
   // The amount must match the price list (plus the delivery fee for the delivery links), and each
   // link should send the customer back to this site with ?paid=1 after paying, like the links above.
   // While a link is still "", choosing that subscription shows "Subscriptions aren't open yet"
   // instead of taking payment. The sizes listed here are the only ones offered as a subscription.
   var SUBSCRIPTION_LINKS = {
-    2: {                                   // every 2 weeks
+    1: {                                   // every week
+      pickup:   { 12: "", 24: "" },
+      delivery: { 12: "", 24: "" }
+    },
+    2: {                                  // every 2 weeks
       pickup:   { 12: "", 24: "" },
       delivery: { 12: "", 24: "" }
     },
@@ -264,8 +269,8 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   // Subscriptions
   var subBtn = byId("osubbtn");
   function isRepeat() { return subBtn.getAttribute("aria-pressed") === "true"; }
-  function frequency() { return document.querySelector('input[name="ofreq"]:checked').value; }  // weeks: "2" or "4"
-  function repeatText() { return "every " + frequency() + " weeks"; }
+  function frequency() { return document.querySelector('input[name="ofreq"]:checked').value; }  // weeks: "1", "2" or "4"
+  function repeatText() { return frequency() === "1" ? "every week" : "every " + frequency() + " weeks"; }
   function subscriptionSizes() { return Object.keys((SUBSCRIPTION_LINKS[frequency()] || {})[method()] || {}); }
   function payLink() {
     if (!isRepeat()) return LINKS[method()][size];
@@ -440,7 +445,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     byId("hmeth").value = method();
     byId("htotal").value = money(orderTotal());
     byId("hmsg").value = message;
-    byId("hfreq").value = isRepeat() ? "Every " + frequency() + " weeks" : "One time";
+    byId("hfreq").value = isRepeat() ? repeatText().replace("e", "E") : "One time";
     var body = new URLSearchParams(new FormData(form));
     if (!(navigator.sendBeacon && navigator.sendBeacon("/", body))) {
       try {
