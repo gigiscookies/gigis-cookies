@@ -1,0 +1,4 @@
+# Netlify settings for Gigi's Cookies.
+# The site is a single static page, so there is no build step.
+[build]
+  publish = "."
