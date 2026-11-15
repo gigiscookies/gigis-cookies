@@ -78,6 +78,9 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
 .ototal { font-weight: 700; font-size: 1.2rem; }
 .oerr { min-height: 1.2rem; font-weight: 700; }
 .ofreqnote { font-size: .9rem; }
+.oform button.osub { display: block; width: 100%; background: transparent; color: #fff; border: 3px dashed #fff; border-radius: .7rem; padding: .7rem; text-align: center; font: inherit; font-weight: 700; cursor: pointer; }
+.oform button.osub[aria-pressed="true"] { background: #fff; color: var(--hot); border-style: solid; }
+.oform button.osub:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .omanage { display: block; margin-top: 1rem; color: #fff; font-size: .9rem; }
 
 /* "Text Gigi my order" box, shown after the customer comes back from paying */
@@ -147,14 +150,13 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
       <label>Your name<input id="oname" name="name" required maxlength="40" autocomplete="name"></label>
       <label>Your phone number<input id="ophone" name="phone" type="tel" required maxlength="20" autocomplete="tel"></label>
       <fieldset class="ofs"><legend>How many cookies</legend><div class="oqty" id="oqty"></div></fieldset>
-      <!-- Standing orders. This choice stays hidden until the subscription payment links are
-           filled in (SUBSCRIPTION_LINKS in the script). To preview it, add ?preview=subscription
-           to the end of the site address. -->
-      <fieldset class="ofs" id="ofreqwrap" hidden><legend>How often</legend>
-        <label class="orad"><input type="radio" name="ofreq" value="once" checked> Just this once</label>
-        <label class="orad"><input type="radio" name="ofreq" value="2"> Every 2 weeks</label>
+      <!-- Subscription. The form works as a normal one-time order until the customer taps this
+           button; tapping it again switches back. SHOW_SUBSCRIPTION in the script hides it entirely. -->
+      <button type="button" class="osub" id="osubbtn" aria-pressed="false" aria-controls="osubpanel">Subscribe and get cookies on repeat</button>
+      <fieldset class="ofs" id="osubpanel" hidden><legend>How often</legend>
+        <label class="orad"><input type="radio" name="ofreq" value="2" checked> Every 2 weeks</label>
         <label class="orad"><input type="radio" name="ofreq" value="4"> Every 4 weeks</label>
-        <div class="ofreqnote" id="ofreqnote" hidden></div>
+        <div class="ofreqnote" id="ofreqnote"></div>
       </fieldset>
       <fieldset class="ofs"><legend>Pickup or delivery</legend>
         <label class="orad"><input type="radio" name="ometh" value="pickup" checked> Pickup (free)</label>
@@ -172,7 +174,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     <!-- Gigi's number. The script reads it from this link, so this is the only place to change it. -->
     <a id="otext" class="btn" href="sms:+19173457890">Or text 917-345-7890</a>
     <!-- Shown once MANAGE_LINK in the script is filled in. -->
-    <a id="omanage" class="omanage" href="#" hidden>Manage or cancel a standing order</a>
+    <a id="omanage" class="omanage" href="#" hidden>Manage or cancel a subscription</a>
   </div>
 </section>
 </main>
@@ -199,12 +201,12 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     }
   };
 
-  // Standing orders (subscriptions): TO DO IN STRIPE, then paste the links here.
+  // Subscriptions: TO DO IN STRIPE, then paste the links here.
   // Each "" needs a Stripe payment link for a RECURRING price that bills every 2 or every 4 weeks.
   // The amount must match the price list (plus the delivery fee for the delivery links), and each
   // link should send the customer back to this site with ?paid=1 after paying, like the links above.
-  // Until every "" below is filled in, customers do not see the "How often" choice at all.
-  // The sizes listed here are the only ones offered as a standing order.
+  // While a link is still "", choosing that subscription shows "Subscriptions aren't open yet"
+  // instead of taking payment. The sizes listed here are the only ones offered as a subscription.
   var SUBSCRIPTION_LINKS = {
     2: {                                   // every 2 weeks
       pickup:   { 12: "", 24: "" },
@@ -216,8 +218,10 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     }
   };
   // TO DO IN STRIPE: the customer portal link, where subscribers update their card or cancel.
-  // While this is "", the "Manage or cancel a standing order" link stays hidden.
+  // While this is "", the "Manage or cancel a subscription" link stays hidden.
   var MANAGE_LINK = "";
+  // Set to false to hide the Subscribe button from customers (for example, until Stripe is ready).
+  var SHOW_SUBSCRIPTION = true;
 
   var DELIVERY_FEE = 10;
   var PICKUP_DAYS = [0, 1, 5];        // Sunday, Monday, Friday
@@ -257,25 +261,15 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   function isDelivery() { return method() === "delivery"; }
   function orderTotal() { return PRICES[size] + (isDelivery() ? DELIVERY_FEE : 0); }
 
-  // Standing orders
-  function frequency() { return document.querySelector('input[name="ofreq"]:checked').value; }  // "once", "2" or "4"
-  function isRepeat() { return frequency() !== "once"; }
+  // Subscriptions
+  var subBtn = byId("osubbtn");
+  function isRepeat() { return subBtn.getAttribute("aria-pressed") === "true"; }
+  function frequency() { return document.querySelector('input[name="ofreq"]:checked').value; }  // weeks: "2" or "4"
   function repeatText() { return "every " + frequency() + " weeks"; }
   function subscriptionSizes() { return Object.keys((SUBSCRIPTION_LINKS[frequency()] || {})[method()] || {}); }
   function payLink() {
     if (!isRepeat()) return LINKS[method()][size];
     return ((SUBSCRIPTION_LINKS[frequency()] || {})[method()] || {})[size] || "";
-  }
-  function subscriptionLinksReady() {
-    var ready = true;
-    Object.keys(SUBSCRIPTION_LINKS).forEach(function (weeks) {
-      Object.keys(SUBSCRIPTION_LINKS[weeks]).forEach(function (how) {
-        Object.keys(SUBSCRIPTION_LINKS[weeks][how]).forEach(function (qty) {
-          if (!SUBSCRIPTION_LINKS[weeks][how][qty]) ready = false;
-        });
-      });
-    });
-    return ready;
   }
 
   // Browser storage can be blocked (private windows), so never let it break the page.
@@ -346,11 +340,13 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     totalEl.textContent = isRepeat() ? text + " " + repeatText() : text;
   }
 
-  // Switch the form between a one-time order and a standing order.
+  // Switch the form between a one-time order and a subscription.
   function applyFrequency() {
     var repeat = isRepeat(), what = method();
+    byId("osubpanel").hidden = !repeat;
+    subBtn.textContent = repeat ? "✓ Subscription on (tap for a one-time order)" : "Subscribe and get cookies on repeat";
 
-    // A standing order only comes in the sizes that have a subscription link.
+    // A subscription only comes in the sizes that have a subscription link.
     var offered = repeat ? subscriptionSizes() : Object.keys(PRICES);
     Array.prototype.forEach.call(sizeBox.children, function (b) {
       b.hidden = offered.indexOf(b.getAttribute("data-qty")) < 0;
@@ -359,13 +355,9 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
 
     var days = isDelivery() ? "Monday or Friday, 9 AM to 2 PM" : "Monday, Friday, or Sunday";
     byId("odlab").textContent = (repeat ? "First " + what : what.charAt(0).toUpperCase() + what.slice(1)) + " day (" + days + ")";
-    var note = byId("ofreqnote");
-    note.hidden = !repeat;
-    note.textContent = repeat
-      ? "Your cookies repeat " + repeatText() + ", on the same weekday and time as your first " + what +
-        ". Your card is charged today and then " + repeatText() + ". To skip, pause or cancel, just text Gigi."
-      : "";
-    byId("osubmit").textContent = repeat ? "Start standing order & pay" : "Place order & pay";
+    byId("ofreqnote").textContent = "Your cookies repeat " + repeatText() + ", on the same weekday and time as your first " + what +
+      ". Your card is charged today and then " + repeatText() + ". To skip, pause or cancel, just text Gigi.";
+    byId("osubmit").textContent = repeat ? "Subscribe & pay" : "Place order & pay";
     showTotal();
   }
 
@@ -427,7 +419,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     var link = payLink();
     if (!link) {
       // The subscription link for this choice has not been added yet (see SUBSCRIPTION_LINKS).
-      showError("Standing orders aren't open yet. Choose \"Just this once\", or text Gigi to set one up.");
+      showError("Subscriptions aren't open yet. Tap the Subscription button to switch back to a one-time order, or text Gigi to set one up.");
       return;
     }
     showError("");
@@ -436,7 +428,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
     var whenText = longDate(when) + " at " + (hour % 12 || 12) + ":" + pad(when.getMinutes()) + " " + (hour >= 12 ? "PM" : "AM");
     var cookies = sizeName(size).toLowerCase() + " (" + size + " cookies)";
     var message = "Hi Gigi! I just PAID " + (isRepeat()
-        ? "to start a standing order: " + cookies + " for " + method() + " " + repeatText() + ", starting " + whenText +
+        ? "to start a subscription: " + cookies + " for " + method() + " " + repeatText() + ", starting " + whenText +
           ". Total: " + money(orderTotal()) + " " + repeatText()
         : "for " + cookies + " for " + method() + " on " + whenText + ". Total: " + money(orderTotal())) +
       ". Name: " + byId("oname").value.trim() +
@@ -463,8 +455,12 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
 
   // ---- Start ----
 
-  // Offer standing orders only once Stripe is set up, or when previewing with ?preview=subscription.
-  if (subscriptionLinksReady() || /[?&]preview=subscription/.test(location.search)) byId("ofreqwrap").hidden = false;
+  subBtn.hidden = !SHOW_SUBSCRIPTION;
+  subBtn.onclick = function () {
+    subBtn.setAttribute("aria-pressed", isRepeat() ? "false" : "true");
+    showError("");
+    applyFrequency();
+  };
   if (MANAGE_LINK) { byId("omanage").href = MANAGE_LINK; byId("omanage").hidden = false; }
 
   showPendingOrder();

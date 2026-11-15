@@ -10,15 +10,17 @@ The ordering website for Gigi's Cookies, live at https://gigiscookies.netlify.ap
 - Order days, the delivery window and the delivery fee are in the settings at the top of the script.
 - Gigi's phone number is set once, on the "Or text" link.
 
-## Standing orders (not switched on yet)
+## Subscriptions (Stripe not connected yet)
 
-The order form has a "How often" choice (just this once, every 2 weeks, every 4 weeks). Customers can't see it until Stripe is set up. To preview it, open the site with `?preview=subscription` at the end of the address.
+The order form works as a normal one-time order. Under the sizes there is a "Subscribe and get cookies on repeat" button; tapping it switches the form to a subscription (every 2 weeks or every 4 weeks), and tapping it again switches back.
 
-To switch it on, in Stripe:
+Until Stripe is set up, trying to pay for a subscription shows "Subscriptions aren't open yet" and takes no payment. To hide the button from customers in the meantime, set `SHOW_SUBSCRIPTION` to `false` in `index.html`.
+
+To connect it, in Stripe:
 
 1. Create recurring prices for 1 dozen and 2 dozen, for pickup and for delivery (+$10), billed every 2 weeks and every 4 weeks. That is 8 prices.
 2. Create a payment link for each, and set each one to send the customer back to `https://gigiscookies.netlify.app/?paid=1` after paying.
-3. Paste the 8 links into `SUBSCRIPTION_LINKS` in `index.html`. Once all 8 are filled in, the choice appears for everyone.
-4. Turn on the Stripe customer portal and paste its link into `MANAGE_LINK`. This shows a "Manage or cancel a standing order" link.
+3. Paste the 8 links into `SUBSCRIPTION_LINKS` in `index.html`.
+4. Turn on the Stripe customer portal and paste its link into `MANAGE_LINK`. This shows a "Manage or cancel a subscription" link.
 
 To offer other sizes or schedules, add them to `SUBSCRIPTION_LINKS` (and add a matching "How often" option in the form for a new schedule).
