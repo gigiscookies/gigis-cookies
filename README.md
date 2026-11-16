@@ -1,6 +1,6 @@
 # Gigi's Cookies
 
-The ordering website for Gigi's Cookies, live at https://gigiscookies.netlify.app.
+The ordering website for Gigi's Cookies, live at https://gigiscookiesnyc.com (also https://gigiscookies.netlify.app).
 
 - `index.html` is the whole site (styles, photo and scripts are inside it).
 - Netlify deploys it automatically whenever this repository changes.
@@ -20,3 +20,7 @@ The order form works as a normal one-time order. Under the sizes there is a "Sub
 - Stripe charges on the day the customer signs up and then on that schedule, which is not necessarily the pickup day.
 - To hide the Subscribe button, set `SHOW_SUBSCRIPTION` to `false`.
 - To offer other sizes or schedules, create the recurring payment link in Stripe, add it to `SUBSCRIPTION_LINKS`, and add a matching "How often" option in the form for a new schedule.
+
+## Deploys
+
+Every push to `main` deploys to Netlify automatically. This repository is public on purpose: Netlify's free plan blocks deploys from more than one contributor on a private repository ("unrecognized Git contributor").
