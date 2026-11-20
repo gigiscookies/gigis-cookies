@@ -12,9 +12,9 @@ The ordering website for Gigi's Cookies, live at https://gigiscookiesnyc.com (al
 
 ## Subscriptions
 
-The order form works as a normal one-time order. Under the sizes there is a "Subscribe and get cookies on repeat" button; tapping it switches the form to a subscription (every week, every 2 weeks or every 4 weeks), and tapping it again switches back.
+The order form works as a normal one-time order. Under the sizes there is a "Subscribe & save 15% on cookies" button; tapping it switches the form to a subscription (every week, every 2 weeks or every 4 weeks), and tapping it again switches back.
 
-- Subscriptions come in 1 dozen and 2 dozen, for pickup or delivery (+$10), at the same prices as one-time orders.
+- Subscriptions come in 1 dozen and 2 dozen, for pickup or delivery (+$10). Subscribers get 15% off the cookies (`SUBSCRIPTION_DISCOUNT`), not the delivery fee: $25.50 a dozen and $51 for 2 dozen. The Stripe prices must match.
 - The 12 recurring Stripe payment links live in `SUBSCRIPTION_LINKS` in `index.html`. Each sends the customer back to the site with `?paid=1` after paying.
 - `MANAGE_LINK` is the Stripe customer portal, where subscribers update their card or cancel. It is linked in grey text at the bottom of the page. Cancelling takes effect at the end of the period already paid for.
 - Stripe charges on the day the customer signs up and then on that schedule, which is not necessarily the pickup day.

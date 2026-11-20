@@ -153,7 +153,7 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
       <fieldset class="ofs"><legend>How many cookies</legend><div class="oqty" id="oqty"></div></fieldset>
       <!-- Subscription. The form works as a normal one-time order until the customer taps this
            button; tapping it again switches back. SHOW_SUBSCRIPTION in the script hides it entirely. -->
-      <button type="button" class="osub" id="osubbtn" aria-pressed="false" aria-controls="osubpanel">Subscribe and get cookies on repeat</button>
+      <button type="button" class="osub" id="osubbtn" aria-pressed="false" aria-controls="osubpanel">Subscribe &amp; save 15% on cookies</button>
       <fieldset class="ofs" id="osubpanel" hidden><legend>How often</legend>
         <label class="orad"><input type="radio" name="ofreq" value="1"> Every week</label>
         <label class="orad"><input type="radio" name="ofreq" value="2" checked> Every 2 weeks</label>
@@ -205,24 +205,26 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   };
 
   // Subscriptions: one recurring Stripe payment link per schedule, method and size. Don't remove them.
-  // The amount is set in Stripe and must match the price list (plus the delivery fee for delivery),
-  // and each link sends the customer back to this site with ?paid=1 after paying.
+  // Subscribers get SUBSCRIPTION_DISCOUNT off the cookies (not the delivery fee). The amount is set in
+  // Stripe and must match: price list minus the discount, plus the delivery fee for delivery.
+  // Each link sends the customer back to this site with ?paid=1 after paying.
   // The sizes listed here are the only ones offered as a subscription. If a link is ever left as "",
   // choosing that subscription shows "Subscriptions aren't open yet" instead of taking payment.
   var SUBSCRIPTION_LINKS = {
     1: {                                   // every week
-      pickup:   { 12: "https://buy.stripe.com/8x24gt6vj2xfcW9cwKawo0a", 24: "https://buy.stripe.com/8x2bIVf1Pb3L9JX40eawo0b" },
-      delivery: { 12: "https://buy.stripe.com/28E8wJf1Pb3L09ncwKawo0c", 24: "https://buy.stripe.com/cNidR36vj1tb2hvfIWawo0d" }
+      pickup:   { 12: "https://buy.stripe.com/6oU7sF4nbc7PcW98guawo0m", 24: "https://buy.stripe.com/14A14h3j74Fn09naoCawo0n" },
+      delivery: { 12: "https://buy.stripe.com/aFadR306V0p73lz54iawo0o", 24: "https://buy.stripe.com/bJe28l5rf5Jr3lz8guawo0p" }
     },
     2: {                                   // every 2 weeks
-      pickup:   { 12: "https://buy.stripe.com/7sY8wJ8Drb3L7BPfIWawo0e", 24: "https://buy.stripe.com/7sY28l3j7b3Lf4haoCawo0f" },
-      delivery: { 12: "https://buy.stripe.com/6oUeV706V1tbaO1dAOawo0g", 24: "https://buy.stripe.com/8x2bIVaLz0p77BP68mawo0h" }
+      pickup:   { 12: "https://buy.stripe.com/4gMbIV9Hvfk12hvfIWawo0q", 24: "https://buy.stripe.com/dRm9AN5rf4Fn09nfIWawo0r" },
+      delivery: { 12: "https://buy.stripe.com/14A5kxdXL3BjaO1aoCawo0s", 24: "https://buy.stripe.com/00w14h6vj0p78FT40eawo0t" }
     },
     4: {                                   // every 4 weeks
-      pickup:   { 12: "https://buy.stripe.com/eVq14h06V1tbg8laoCawo0i", 24: "https://buy.stripe.com/cNifZbdXL1tb1dr68mawo0j" },
-      delivery: { 12: "https://buy.stripe.com/bJe7sF06Vc7P09n54iawo0k", 24: "https://buy.stripe.com/bJeaER06VdbT6xL2Waawo0l" }
+      pickup:   { 12: "https://buy.stripe.com/cNicMZcTH9ZH2hv2Waawo0u", 24: "https://buy.stripe.com/cNi28lcTH7Rzf4hgN0awo0v" },
+      delivery: { 12: "https://buy.stripe.com/8x2dR3g5T6Nv8FTfIWawo0w", 24: "https://buy.stripe.com/aFabIVdXLdbT7BPfIWawo0x" }
     }
   };
+  var SUBSCRIPTION_DISCOUNT = 0.15;      // 15% off the cookies for subscribers
   // Stripe customer portal, where subscribers update their card or cancel.
   var MANAGE_LINK = "https://billing.stripe.com/p/login/5kQ6oB6vj7Rz7BP54iawo00";
   // Set to false to hide the Subscribe button from customers (for example, until Stripe is ready).
@@ -264,7 +266,12 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   function showError(text) { errEl.textContent = text; }
   function method() { return document.querySelector('input[name="ometh"]:checked').value; }
   function isDelivery() { return method() === "delivery"; }
-  function orderTotal() { return PRICES[size] + (isDelivery() ? DELIVERY_FEE : 0); }
+  // What the cookies cost: the price list, minus the subscriber discount when subscribing.
+  function cookiePrice(qty) {
+    return isRepeat() ? Math.round(PRICES[qty] * (1 - SUBSCRIPTION_DISCOUNT) * 100) / 100 : PRICES[qty];
+  }
+  function orderTotal() { return cookiePrice(size) + (isDelivery() ? DELIVERY_FEE : 0); }
+  function discountText() { return Math.round(SUBSCRIPTION_DISCOUNT * 100) + "% off"; }
 
   // Subscriptions
   var subBtn = byId("osubbtn");
@@ -322,12 +329,19 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
       var b = document.createElement("button");
       b.type = "button";
       b.className = "opill";
-      b.textContent = sizeName(qty) + " (" + qty + " cookies) - " + money(PRICES[qty]);
       b.setAttribute("data-qty", qty);
       b.onclick = function () { pickSize(qty); };
       sizeBox.appendChild(b);
     });
     pickSize(size);
+  }
+
+  function sizeLabels() {
+    Array.prototype.forEach.call(sizeBox.children, function (b) {
+      var qty = b.getAttribute("data-qty");
+      b.textContent = sizeName(qty) + " (" + qty + " cookies) - " + money(cookiePrice(qty)) +
+        (isRepeat() ? " (was " + money(PRICES[qty]) + ")" : "");
+    });
   }
 
   function pickSize(qty) {
@@ -339,9 +353,10 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   }
 
   function showTotal() {
+    var cookies = money(cookiePrice(size)) + (isRepeat() ? " (" + discountText() + ")" : "");
     var text = isDelivery()
-      ? "Cookies " + money(PRICES[size]) + " + delivery " + money(DELIVERY_FEE) + " = Total " + money(orderTotal())
-      : "Total: " + money(orderTotal());
+      ? "Cookies " + cookies + " + delivery " + money(DELIVERY_FEE) + " = Total " + money(orderTotal())
+      : "Total: " + cookies;
     totalEl.textContent = isRepeat() ? text + " " + repeatText() : text;
   }
 
@@ -349,7 +364,10 @@ footer { text-align: center; padding: 1.5rem; font-size: .95rem; }
   function applyFrequency() {
     var repeat = isRepeat(), what = method();
     byId("osubpanel").hidden = !repeat;
-    subBtn.textContent = repeat ? "✓ Subscription on (tap for a one-time order)" : "Subscribe and get cookies on repeat";
+    subBtn.textContent = repeat
+      ? "✓ Subscribed: " + discountText() + " (tap for a one-time order)"
+      : "Subscribe & save " + Math.round(SUBSCRIPTION_DISCOUNT * 100) + "% on cookies";
+    sizeLabels();
 
     // A subscription only comes in the sizes that have a subscription link.
     var offered = repeat ? subscriptionSizes() : Object.keys(PRICES);
